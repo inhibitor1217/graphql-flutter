@@ -13,7 +13,8 @@ const typeDef = gql`
         updatedAt: Date!
     }
 
-    type TodoQueries {
+    type Todos {
+        id: ID!
         list: [Todo]!
         count: Int!
     }
@@ -31,7 +32,7 @@ const typeDef = gql`
 
     type Query {
         _version: String!
-        Todo: TodoQueries!
+        Todo: Todos!
     }
 
     type Mutation {
@@ -51,6 +52,7 @@ const resolvers = {
             const todos = storage.get(TODOS_KEY);
 
             return {
+                id: () => 'Todos',
                 count: () => todos?.length || 0,
                 list: () => todos?.map((id) => storage.get(id)) || [],
             };
@@ -68,6 +70,8 @@ const resolvers = {
                     storage.set(id, todo);
                     storage.set(TODOS_KEY, todos ? [...todos, id] : [id]);
 
+                    console.log(todo);
+
                     return todo;
                 },
                 update: ({ id, input: { title, content } }) => {
@@ -80,6 +84,8 @@ const resolvers = {
                     const updated = { ...todo, title: title || todo.title, content: content || todo.content, updatedAt: Date.now() };
 
                     storage.set(id, updated);
+
+                    console.log(updated);
 
                     return updated;
                 },
