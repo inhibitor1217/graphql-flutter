@@ -15,7 +15,7 @@ const typeDef = gql`
 
     type Todos {
         id: ID!
-        list: [Todo]!
+        list(limit: Int, cursor: ID): [Todo]!
         count: Int!
     }
 
@@ -54,7 +54,15 @@ const resolvers = {
             return {
                 id: () => 'Todos',
                 count: () => todos?.length || 0,
-                list: () => todos?.map((id) => storage.get(id)) || [],
+                list: ({ cursor, limit = 3 }) => {
+                    const all = todos?.map((id) => storage.get(id)) || [];
+                    all.sort((one, other) => other.updatedAt - one.updatedAt);
+
+                    const cursorItem = cursor ? storage.get(cursor) : null;
+                    const filtered = all.filter((item) => !cursorItem || item.updatedAt < cursorItem.updatedAt);
+
+                    return filtered.slice(0, limit);
+                }
             };
         },
     },

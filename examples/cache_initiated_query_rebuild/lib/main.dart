@@ -57,12 +57,12 @@ class TodoListRoute extends StatelessWidget {
       body: Query(
         options: QueryOptions(
           documentNode: gql(r'''
-            query TodoList {
+            query TodoList($cursor: ID) {
               Todo {
                 __typename
                 id
                 count
-                list {
+                list(cursor: $cursor) {
                   __typename
                   id
                   title
@@ -81,8 +81,13 @@ class TodoListRoute extends StatelessWidget {
             return Center(child: Text('Error :('));
           }
 
+          final NormalizedInMemoryCache cache =
+              GraphQLProvider.of(context).value.cache;
+          printCache(cache);
+
           final int count = result.data['Todo']['count'];
           final List<dynamic> items = result.data['Todo']['list'];
+          final cursor = items.last['id'];
 
           return SingleChildScrollView(
             child: Column(
@@ -124,6 +129,26 @@ class TodoListRoute extends StatelessWidget {
                       ),
                     )
                     .toList(),
+                FlatButton(
+                  child: Text('FETCH MORE'),
+                  onPressed: () {
+                    fetchMore(FetchMoreOptions(
+                      variables: {
+                        'cursor': cursor,
+                      },
+                      updateQuery: (prev, cur) {
+                        return Map<String, dynamic>.from(cur)
+                          ..addAll({
+                            'Todo': Map<String, dynamic>.from(cur['Todo'])
+                              ..addAll({
+                                'list': List<dynamic>.from(cur['Todo']['list'])
+                                  ..insertAll(0, prev['Todo']['list']),
+                              }),
+                          });
+                      },
+                    ));
+                  },
+                ),
                 Mutation(
                   options: MutationOptions(
                     documentNode: gql(r'''
